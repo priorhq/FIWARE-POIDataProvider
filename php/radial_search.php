@@ -6,10 +6,10 @@
 * For conditions of distribution and use, see copyright notice in LICENSE
 */
 
-require 'db.php';
-require 'util.php';
-include 'is_open.php';
-include 'time_span.php';
+require_once 'db.php';
+require_once 'util.php';
+include_once 'is_open.php';
+include_once 'time_span.php';
 
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET' )
