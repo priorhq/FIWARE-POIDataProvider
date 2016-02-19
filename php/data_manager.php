@@ -1,6 +1,6 @@
 <?php
 
-// Dependency: JSON Schema validator, 
+// Dependency: JSON Schema validator,
 // https://github.com/justinrainbow/json-schema
 require_once 'vendor/autoload.php';
 
@@ -12,7 +12,7 @@ $intl_properties = find_intl_properties($poi_schema->properties);
 function get_supported_components()
 {
     global $supported_components;
-    
+
     return $supported_components;
 }
 
@@ -20,15 +20,13 @@ function validate_poi_data($poi_data)
 {
     global $poi_schema;
     $result = false;
-    
-//=    $poi_schema = load_poi_schema();
-    
+
     $intl_props = find_intl_properties($poi_schema->properties);
-    
+
     $temp = json_encode($poi_data);
     $poi_data = json_decode($temp);
-    
-    
+
+
     // Validate
     $validator = new JsonSchema\Validator();
     $validator->check($poi_data, $poi_schema);
@@ -41,7 +39,7 @@ function validate_poi_data($poi_data)
             echo sprintf("[%s] %s\n", $error['property'], $error['message']);
         }
     }
-    
+
     return $result;
 }
 
@@ -49,15 +47,15 @@ function validate_poi_data($poi_data)
 function load_poi_schema($poi_schema_file = 'poi_schema_3.5.json')
 {
     global $supported_components;
-    
+
     $retriever = new JsonSchema\Uri\UriRetriever;
     $poi_schema = $retriever->retrieve('file://' . realpath($poi_schema_file));
     $supported_components = array_keys(
         get_object_vars($poi_schema->properties));
-    
+
     $refResolver = new JsonSchema\RefResolver($retriever);
     $refResolver->resolve($poi_schema, 'file://' .realpath($poi_schema_file));
-    
+
     return $poi_schema;
 }
 
@@ -89,14 +87,13 @@ function find_intl_properties($schema_obj, $base_path = '')
         }
         if (isset($value->id) and gettype($value->id) == "string")
         {
-            //if ($value->title == "Internationalized string" or $value->title == "Internationalized URI")
             if (strpos($value->id, "intl_string") != FALSE or strpos($value->id, "intl_uri") != FALSE)
             {
                $intl_properties[] = $path;
                continue;
             }
         }
-        
+
         if (is_object($value))
         {
             if (substr($path, -1) != ".")
@@ -107,16 +104,16 @@ function find_intl_properties($schema_obj, $base_path = '')
             $intl_properties = array_merge($intl_properties, $intl_p);
         }
     }
-    
+
     return $intl_properties;
-    
+
 }
 
 //This function returns the value of the attribute in $path in a multidimensional
 //associative array structure.
 //$path should be a string, where key names are separated with a dot: "fw_core.name"
-//A normal array in the path is denoted with a "*", 
-//e.g. "fw_media.entities.*.short_label" where "entities" is an array containing 
+//A normal array in the path is denoted with a "*",
+//e.g. "fw_media.entities.*.short_label" where "entities" is an array containing
 //unnamed objects containing an attribute "short_label"
 function get_arr_value_by_path($array, $path)
 {
@@ -127,22 +124,22 @@ function get_arr_value_by_path($array, $path)
     foreach($path_elems as $elem)
     {
         $remaining_path = substr($remaining_path, strlen($elem)+1);
-        
+
         if ($elem == "*")
         {
             foreach($curr_node as $arr_item)
             {
                 $values = get_arr_value_by_path($arr_item, $remaining_path);
-                
+
                 if (is_array($values))
                 {
                     $found_values = array_merge($found_values, $values);
                 }
-                
+
             }
             break;
         }
-        
+
         if (isset($curr_node[$elem]))
         {
             $curr_node = $curr_node[$elem];
@@ -159,11 +156,11 @@ function get_arr_value_by_path($array, $path)
     return $found_values;
 }
 
-//This function returns a reference to the value of the attribute in $path 
+//This function returns a reference to the value of the attribute in $path
 //in a multidimensional associative array structure.
 //$path should be a string, where key names are separated with a dot: "fw_core.name"
-//A normal array in the path is denoted with a "*", 
-//e.g. "fw_media.entities.*.short_label" where "entities" is an array containing 
+//A normal array in the path is denoted with a "*",
+//e.g. "fw_media.entities.*.short_label" where "entities" is an array containing
 //unnamed objects containing an attribute "short_label"
 function &get_arr_ref_by_path(&$array, $path)
 {
@@ -171,7 +168,7 @@ function &get_arr_ref_by_path(&$array, $path)
     $path_elems = explode(".", $path);
     $path_elem = $path_elems[0];
     $remaining_path = substr($path, strlen($path_elem)+1);
-    
+
     if ($path_elem == "*")
     {
         foreach($array as &$arr_item)
@@ -180,7 +177,7 @@ function &get_arr_ref_by_path(&$array, $path)
             $found_values[] = &$values;
         }
     }
-    
+
     else if (isset($array[$path_elem]))
     {
         if ($remaining_path == "")
@@ -191,7 +188,7 @@ function &get_arr_ref_by_path(&$array, $path)
         {
             $found_values = &get_arr_ref_by_path($array[$path_elem], $remaining_path);
         }
-        
+
     }
     else
     {
@@ -207,14 +204,14 @@ function &get_arr_ref_by_path(&$array, $path)
 //associative array structure.
 //$path should be a string, where key names are separated with a dot: "fw_core.name"
 //A numerical array index is simply denoted with a number
-//e.g. "fw_media.entities.0.short_label" where "entities" is an array containing 
+//e.g. "fw_media.entities.0.short_label" where "entities" is an array containing
 //unnamed objects containing an attribute "short_label"
 function set_arr_value_by_path(&$array, $path, $new_val)
 {
     $path_elems = explode(".", $path);
     $path_elem = $path_elems[0];
     $remaining_path = substr($path, strlen($path_elem)+1);
-        
+
     if (isset($array[$path_elem]))
     {
         if ($remaining_path == "")
@@ -225,12 +222,12 @@ function set_arr_value_by_path(&$array, $path, $new_val)
         {
             set_arr_value_by_path($array[$path_elem], $remaining_path, $new_val);
         }
-        
+
     }
     else
     {
     }
-    
+
 }
 
 
@@ -241,10 +238,7 @@ function filter_poi_intl_properties(&$pois_data, $langs)
 //*    global $poi_schema;
     global $intl_properties;
     $pois = &$pois_data['pois'];
-//*    $schema = load_poi_schema();
-//*    $intl_properties = find_intl_properties($schema->properties);
-//*    $intl_properties = find_intl_properties($poi_schema->properties);
-    
+
     foreach($pois as &$poi)
     {
         foreach($poi as &$poi_data_comp)
@@ -260,13 +254,13 @@ function filter_poi_intl_properties(&$pois_data, $langs)
                 $prop_val = filter_intl_string_by_langs($prop_val, $langs);
             }
         }
-        
+
     }
-    
+
 }
 
 function filter_intl_string_by_langs($text_intl, $langs) { // : string
-/* 
+/*
     text_intl - internationalized string with language variants
     langs - array of accepted language codes in descending priority
             "*" for any language.
@@ -275,7 +269,7 @@ function filter_intl_string_by_langs($text_intl, $langs) { // : string
     $resstring = null;
     $deflang = ""; $i = ""; $reslang = "";
     $anylang = false;
-  
+
   if($text_intl) {
     if(sizeof($langs) == 0) {
       $anylang = true;
@@ -290,7 +284,7 @@ function filter_intl_string_by_langs($text_intl, $langs) { // : string
     }
     /*
       Now: we may have resstring, or anylang or neither
-    */  
+    */
     if ($resstring == null) {
         $reslang = "";
         if (isset($text_intl[$reslang]))
@@ -313,7 +307,7 @@ function filter_intl_string_by_langs($text_intl, $langs) { // : string
         if ( $resstring != null) break;
       }
     }
-  } 
+  }
   if($resstring != null) {
     $result = array();
     $result[$reslang] = $resstring;

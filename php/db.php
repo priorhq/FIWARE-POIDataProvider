@@ -6,7 +6,7 @@
 * For conditions of distribution and use, see copyright notice in LICENSE
 */
 
-function update_fw_core($db_opts, $pgcon, $uuid, $fw_core, $fw_core_tbl, 
+function update_fw_core($db_opts, $pgcon, $uuid, $fw_core, $fw_core_tbl,
     $new_timestamp)
 {
   $description = NULL;
@@ -17,19 +17,19 @@ function update_fw_core($db_opts, $pgcon, $uuid, $fw_core, $fw_core_tbl,
   $source_website = NULL;
   $source_id = NULL;
   $source_license = NULL;
-   
+
   $fw_core_intl_tbl = $db_opts['fw_core_intl_table_name'];
 
   update_fw_core_intl_properties($pgcon, $fw_core_intl_tbl, $uuid, $fw_core);
-            
+
   $categories = $fw_core['categories'];
   foreach($categories as &$category)
   {
       $category = pg_escape_string($category);
   }
-  
+
   $pg_categories = "{". implode(",", $categories). "}";
-             
+
   $location = $fw_core['location'];
   $lat = NULL;
   $lon = NULL;
@@ -43,7 +43,7 @@ function update_fw_core($db_opts, $pgcon, $uuid, $fw_core, $fw_core_tbl,
       header("HTTP/1.0 400 Bad Request");
       die ("Failed to parse location: lat or lon is NULL!");
   }
-  
+
 
   if (isset($fw_core['thumbnail']))
       $thumbnail = pg_escape_string($fw_core['thumbnail']);
@@ -60,11 +60,11 @@ function update_fw_core($db_opts, $pgcon, $uuid, $fw_core, $fw_core_tbl,
       if (isset($src['license']))
           $source_license = pg_escape_string($src['license']);
   }
-  
+
   $update = "UPDATE $fw_core_tbl SET categories='$pg_categories', location=ST_GeogFromText('POINT($lon $lat)'), " .
   "thumbnail='$thumbnail', timestamp=$new_timestamp, source_name='$source_name', source_website='$source_website', " .
   "source_id='$source_id', source_license='$source_license' WHERE uuid='$uuid';";
-  
+
   $update_result = pg_query($update);
   if (!$update_result)
   {
@@ -82,9 +82,9 @@ function get_db_options()
     $options["sql_db_name"] = "poidatabase";
     $options["fw_core_table_name"] = "fw_core";
     $options["fw_core_intl_table_name"] = "fw_core_intl";
-    
+
     $options["mongo_db_name"] = "poi_db";
-    
+
     return $options;
 }
 
@@ -97,11 +97,11 @@ function get_fw_core_intl_property_names()
 function connectPostgreSQL($db_name)
 {
     $pgcon = pg_connect("dbname=".$db_name." user=gisuser");
-    
+
     if (!$pgcon) {
         die("Error connecting to PostgreSQL database: " . $db_name);
     }
-    
+
     return $pgcon;
 }
 
@@ -109,36 +109,34 @@ function fw_core_pgsql2array($core_result, $incl_fw_core)
 {
     $json_struct = array();
     $pois = array();
-    
+
     while ($row = pg_fetch_assoc($core_result)) {
         //var_dump($row);
         $uuid = $row['uuid'];
         if ($uuid == NULL)
             continue;
         $poi = array();
-        
+
         //fw_core component is included in the request...
         if ($incl_fw_core == TRUE) {
             $core_component = array();
-            $core_component["location"] = array("wgs84" => array("latitude" => floatval($row['lat']), "longitude" => floatval($row['lon'])));
+            $core_component["location"] = array(
+                "wgs84" => array("latitude" => floatval($row['lat']), "longitude" => floatval($row['lon']))
+            );
             $core_component["categories"] = explode(',', $row['categories']);
-            
+
             if ($row['timestamp'] != NULL)
             {
-//                 if ($row['userid'] != NULL) {
-//                     $core_component['last_update'] = array('timestamp' => $row['timestamp'], 'user_id' => $row['userid']);
-//                 }
-//                 else {
-                    $core_component['last_update'] = array('timestamp' => intval($row['timestamp']));
-//                 }
+                $core_component['last_update'] = array('timestamp' => intval($row['timestamp']));
             }
-            
+
             foreach (array_keys($row) as $key)
             {
                 #Skip these attributes, as they are handled differently
-                if ($key == 'uuid' or $key == 'lat' or $key == 'lon' or $key == 'timestamp' or $key == 'userid' or $key == 'categories')
+                if ($key == 'uuid' or $key == 'lat' or $key == 'lon' or $key == 'timestamp' or $key == 'userid' or
+                    $key == 'categories')
                     continue;
-                
+
                 if ($row[$key] != NULL)
                 {
                     //process source_* attributes
@@ -153,7 +151,7 @@ function fw_core_pgsql2array($core_result, $incl_fw_core)
 
                         continue;
                     }
-                    
+
                     if ($key == 'name' or $key == 'label' or $key == 'description' or $key == 'url')
                     {
                         //$core_component[$key] = array("" => $row[$key]);
@@ -165,14 +163,14 @@ function fw_core_pgsql2array($core_result, $incl_fw_core)
                     }
                 }
             }
-            
+
             $poi['fw_core'] = $core_component;
             $pois[$uuid] = $poi;
         }
         else {
             $pois[$uuid] = (object) null;
         }
-        
+
     }
     $json_struct["pois"] = $pois;
     return $json_struct;
@@ -180,9 +178,9 @@ function fw_core_pgsql2array($core_result, $incl_fw_core)
 
 function update_fw_core_intl_properties($pgcon, $fw_core_intl_tbl, $uuid, $fw_core)
 {
-    
+
     $prop_names = get_fw_core_intl_property_names();
-    
+
     foreach($prop_names as $prop_name)
     {
         if (isset($fw_core[$prop_name]))
@@ -191,7 +189,7 @@ function update_fw_core_intl_properties($pgcon, $fw_core_intl_tbl, $uuid, $fw_co
         {
             $del_stmt = "DELETE FROM $fw_core_intl_tbl WHERE uuid='$uuid' and property_name='$prop_name'";
             $del_result = pg_query($del_stmt);
-        
+
             if (!$del_result)
             {
                 header("HTTP/1.0 500 Internal Server Error");
@@ -200,15 +198,15 @@ function update_fw_core_intl_properties($pgcon, $fw_core_intl_tbl, $uuid, $fw_co
             }
         }
     }
-    
+
 }
 
 function upsert_intl_property_pgsql($db_con, $table, $uuid, $property_name, $intl_values)
 {
-    
+
     $select_existing_values = "SELECT lang FROM $table WHERE uuid='$uuid' and property_name='$property_name'";
     $existing_values_res = pg_query($db_con, $select_existing_values);
-        
+
     if (!$existing_values_res)
     {
         header("HTTP/1.0 500 Internal Server Error");
@@ -217,29 +215,29 @@ function upsert_intl_property_pgsql($db_con, $table, $uuid, $property_name, $int
     }
 
     $existing_langs = array();
-    
+
     while($row = pg_fetch_row($existing_values_res))
     {
         $existing_langs[] = $row[0];
     }
 
     $upsert_langs = array_keys($intl_values);
-    $remove_langs = array_diff($existing_langs, $upsert_langs);   
+    $remove_langs = array_diff($existing_langs, $upsert_langs);
 
     foreach($intl_values as $lang_key => $intl_val)
     {
         $value = pg_escape_string($db_con, $intl_val);
-        
+
         $row_exists = in_array($lang_key, $existing_langs);
-        
+
         if ($row_exists == true)
         {
             $upsert = "UPDATE $table SET value='$value' WHERE uuid='$uuid' and property_name='$property_name' and lang='$lang_key'";
         }
-        
-        else 
+
+        else
         {
-            $upsert = "INSERT INTO $table (uuid, property_name, lang, value) " . 
+            $upsert = "INSERT INTO $table (uuid, property_name, lang, value) " .
                 "VALUES('$uuid', '$property_name', '$lang_key', '$value')";
         }
 
@@ -251,15 +249,15 @@ function upsert_intl_property_pgsql($db_con, $table, $uuid, $property_name, $int
             echo pg_last_error();
             exit;
         }
-    
+
     }
-    
+
     foreach($remove_langs as $remove_lang)
     {
         $del_stmt = "DELETE FROM $table WHERE uuid='$uuid' and property_name='$property_name' and lang='$remove_lang'";
 
         $del_result = pg_query($del_stmt);
-        
+
         if (!$del_result)
         {
             header("HTTP/1.0 500 Internal Server Error");
@@ -267,14 +265,14 @@ function upsert_intl_property_pgsql($db_con, $table, $uuid, $property_name, $int
             die($error);
         }
     }
-    
+
 }
 
 function get_intl_property_pgsql($db_con, $table, $uuid, $property_name)
 {
     $select_values = "SELECT lang, value FROM $table WHERE uuid='$uuid' and property_name='$property_name'";
     $values_res = pg_query($db_con, $select_values);
-        
+
     if (!$values_res)
     {
         header("HTTP/1.0 500 Internal Server Error");
@@ -283,22 +281,22 @@ function get_intl_property_pgsql($db_con, $table, $uuid, $property_name)
     }
 
     $existing_values = array();
-    
+
     while($row = pg_fetch_row($values_res))
     {
         $lang = $row[0];
         $value = $row[1];
         $existing_values[$lang] = $value;
     }
-    
+
     return $existing_values;
 }
 
 function get_fw_core_intl_properties_for_poi($db_con, $table, $uuid, $poi_data)
 {
-    
+
     $intl_props = get_fw_core_intl_property_names();
-    
+
     foreach($intl_props as $prop_name)
     {
         $prop_value = get_intl_property_pgsql($db_con, $table, $uuid, $prop_name);
@@ -306,9 +304,9 @@ function get_fw_core_intl_properties_for_poi($db_con, $table, $uuid, $poi_data)
         {
             $poi_data["fw_core"][$prop_name] = $prop_value;
         }
-        
+
     }
-    
+
     return $poi_data;
 }
 
@@ -332,7 +330,7 @@ function getComponentMongoDB($db, $component_name, $uuid, $fetch_for_update)
         $relationships = findRelationshipsForUUID($db, $uuid, $fetch_for_update);
         return $relationships;
     }
-    
+
     $collection = $db->$component_name;
     $component = $collection->findOne(array("_id" => $uuid), array("_id" => false));
     return $component;
@@ -347,11 +345,11 @@ function findRelationshipsForUUID($db, $uuid, $fetch_for_update)
         $relationships = $collection->findOne(array("subject" => $uuid),
             array("_id" => false));
     }
-    
+
     else
     {
         $relationships = $collection->findOne(array('$or' => array(
-            array("subject" => $uuid), 
+            array("subject" => $uuid),
             array("objects" => $uuid))),
             array("_id" => false));
     }
