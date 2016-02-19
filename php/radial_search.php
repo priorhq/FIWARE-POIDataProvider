@@ -56,13 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' )
         
         if (isset($common_params['categories']))
         {
-            $query = "SELECT uuid, array_to_string(categories, ',') as categories, thumbnail, st_x(location::geometry) as lon, st_y(location::geometry) as lat, st_astext(geometry) as geometry, st_distance(st_setsrid(st_makepoint($lon, $lat), 4236)::geography, location) as distance, timestamp, ".
+            $query = "SELECT uuid, array_to_string(categories, ',') as categories, thumbnail, st_x(location::geometry) as lon, st_y(location::geometry) as lat, st_astext(geometry) as geometry, st_distance(st_setsrid(st_makepoint($lon, $lat), 4326)::geography, location) as distance, timestamp, ".
             "source_name, source_website, source_id, source_license " .
             "FROM $fw_core_tbl WHERE ST_DWithin(location, ST_GeogFromText('POINT($lon $lat)'), $radius) AND categories && '{" . $common_params['categories'] . "}' ORDER BY distance, LIMIT " . $common_params['max_results'];
         }
 
         else {
-            $query = "SELECT uuid, array_to_string(categories, ',') as categories, thumbnail, st_x(location::geometry) as lon, st_y(location::geometry) as lat, st_astext(geometry) as geometry, st_distance(st_setsrid(st_makepoint($lon, $lat), 4236)::geography, location) as distance, timestamp, " .
+            $query = "SELECT uuid, array_to_string(categories, ',') as categories, thumbnail, st_x(location::geometry) as lon, st_y(location::geometry) as lat, st_astext(geometry) as geometry, st_distance(st_setsrid(st_makepoint($lon, $lat), 4326)::geography, location) as distance, timestamp, " .
             "source_name, source_website, source_id, source_license " .
             "FROM $fw_core_tbl WHERE ST_DWithin(location, ST_GeogFromText('POINT($lon $lat)'), $radius) ORDER BY distance LIMIT " . $common_params['max_results'];
         }
